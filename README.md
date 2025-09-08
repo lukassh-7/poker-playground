@@ -3,7 +3,21 @@
 This project generates random **heads-up Texas Hold’em matchups** and classifies them into structured categories.  
 It relies fully on the [pokersolver](https://www.npmjs.com/package/pokersolver) library for accurate hand evaluation.  
 
----
+## 🚀 Usage
+
+### Run generator
+
+- can be run on empty ouput or existing (will add new exercies)
+
+```bash
+npm run start
+```
+
+### Clear output
+
+```bash
+npm run clear-output
+```
 
 ## ✨ How It Works
 
@@ -36,11 +50,3 @@ The script runs through a simple but powerful pipeline:
 - 2,000,000 iterations should complete in ~54 seconds
 - Produces about 64 unique categories.
 - Iteration count is configurable in package.json (see the scripts section).
-
-## 🚀 Usage
-
-### Run generator
-
-```bash
-npm run start
-```
