@@ -5,6 +5,12 @@ It relies fully on the [pokersolver](https://www.npmjs.com/package/pokersolver) 
 
 ## 🚀 Usage
 
+### Install
+
+```bash
+npm install
+```
+
 ### Run generator
 
 Generator can be run on empty ouput or existing (will add new exercies)
