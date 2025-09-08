@@ -1,37 +1,46 @@
-# Poker Playground
+# 🃏 Poker Hand Category Generator
 
-Node.js scripting playground using the `pokersolver` library.
+This project generates random **heads-up Texas Hold’em matchups** and classifies them into structured categories.  
+It relies fully on the [pokersolver](https://www.npmjs.com/package/pokersolver) library for accurate hand evaluation.  
 
-## Setup
+---
+
+## ✨ How It Works
+
+The script runs through a simple but powerful pipeline:
+
+1. **Random hands generation**  
+   - A full 52-card deck is shuffled.  
+   - Two players and a 5-card board are dealt (no duplicates).  
+
+2. **Initial category assignment**  
+   - Each player’s best hand is solved with `pokersolver`.  
+   - Their hand names are combined into a base category:  
+     - Example: `Pair` vs `High Card` → `pairVsHighCard`  
+     - Example: `Straight` vs `Straight` → `straightVsStraight`  
+
+3. **Category refinement**  
+   - Equal-rank matchups are split into subcategories:  
+     - `pairVsPair` → `pairVsLowerPair` | `pairVsPairKickerDecides` | `pairVsPairChop`  
+     - `straightVsStraight` → `straightVsLowerStraight` | `straightVsStraightChop`  
+
+4. **Board-aware chops**  
+   - If a chop occurs **because the board itself is the best hand**, the category is further refined:  
+     - `pairVsPairChop` → `onBoardPairChop`  
+     - `straightVsStraightChop` → `onBoardStraightChop`  
+
+---
+
+## ⚡ Performance
+
+- 2,000,000 iterations should complete in ~54 seconds
+- Produces about 64 unique categories.
+- Iteration count is configurable in package.json (see the scripts section).
+
+## 🚀 Usage
+
+### Run generator
 
 ```bash
-npm install
+npm run start
 ```
-
-## Run example
-
-```bash
-npm start
-```
-
-This runs `index.js`, which evaluates two example Texas Hold'em hands and prints their names, descriptions, and the winner using `pokersolver`.
-
-## Library
-
-- [pokersolver on npm](https://www.npmjs.com/package/pokersolver)
-
-Example usage (from our `index.js`):
-
-```js
-const { Hand } = require('pokersolver');
-
-const hand1 = Hand.solve(['Ad', 'As', 'Jc', 'Th', '2d', '3c', 'Kd']);
-const hand2 = Hand.solve(['Ad', 'As', 'Jc', 'Th', '2d', 'Qs', 'Qd']);
-const winners = Hand.winners([hand1, hand2]);
-
-console.log('Winner(s):', winners.map((w) => w.toString()).join(' | '));
-```
-
-## License
-
-MIT
