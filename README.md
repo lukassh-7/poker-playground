@@ -7,7 +7,7 @@ It relies fully on the [pokersolver](https://www.npmjs.com/package/pokersolver) 
 
 ### Run generator
 
-- can be run on empty ouput or existing (will add new exercies)
+Generator can be run on empty ouput or existing (will add new exercies)
 
 ```bash
 npm run start
