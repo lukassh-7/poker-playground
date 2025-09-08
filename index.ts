@@ -130,7 +130,7 @@ export async function demonstrateSolver(runs = 1): Promise<void> {
     const norm = normalizeWinnerFirst(hand1, hand2, player1, player2)
 
     // refine when both sides are same category (pair vs pair, etc.)
-    const detailedKey = refineSameRankCategory(norm.key, norm.isTie ? hand1 : (norm.p1 === player1 ? hand1 : hand2), norm.isTie ? hand2 : (norm.p1 === player1 ? hand2 : hand1), norm.isTie)
+    const detailedKey = refineSameRankCategory(norm.key, norm.isTie ? hand1 : (norm.p1 === player1 ? hand1 : hand2), norm.isTie ? hand2 : (norm.p1 === player1 ? hand2 : hand1), norm.isTie, board)
 
     if (!store[detailedKey]) store[detailedKey] = []
 
@@ -141,7 +141,7 @@ export async function demonstrateSolver(runs = 1): Promise<void> {
 
   await saveStore(store)
   await generateHandCategoryTypeWithCounts(store, resolve(process.cwd(), 'hand-categories.ts'))
-  
+
   const end = Date.now() // ⬅️ end timer
   const ms = end - start
 

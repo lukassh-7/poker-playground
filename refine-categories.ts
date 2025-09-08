@@ -59,10 +59,16 @@ function parseBase(key: string): { left: string; right: string } {
   return { left: l, right: r[0].toLowerCase() + r.slice(1) }
 }
 
-// --- per-category refiners -------------------------------------------------
-function refinePairVsPair(hand1: any, hand2: any, isTie: boolean): string {
-  if (isTie) return 'pairVsLowerPairChop'
+function isBoardHand(hand: any, board: string[]): boolean {
+  // Normalize to string values like "7c", "Td" etc.
+  const boardSet = new Set(board.map(c => c.toLowerCase()))
+  const handCards = hand.cards.map((c: any) => c.toString().toLowerCase())
+  // All 5 best cards are exactly the board
+  return handCards.every((c: string) => boardSet.has(c)) && handCards.length === board.length
+}
 
+// --- per-category refiners -------------------------------------------------
+function refinePairVsPair(hand1: any, hand2: any): string {
   // find pair rank in each 5-card best hand
   const h1 = countByRank(hand1.cards)
   const h2 = countByRank(hand2.cards)
@@ -80,45 +86,38 @@ function refinePairVsPair(hand1: any, hand2: any, isTie: boolean): string {
   const h2Kickers = descendingValues(hand2.cards).filter(v => v !== h2Pair)
   const diffIdx = firstDiffIndex(h1Kickers, h2Kickers)
 
-  if (diffIdx === -1) return 'pairVsLowerPairChop'
+  if (diffIdx === -1) return 'pairVsPairChop' // should never happen, but just in case
   return 'pairVsPairKickerDecides'
 }
 
-function refineHighCardVsHighCard(hand1: any, hand2: any, isTie: boolean): string {
-  if (isTie) return 'highCardVsCardChop'
-
+function refineHighCardVsHighCard(hand1: any, hand2: any): string {
   const a = descendingValues(hand1.cards)
   const b = descendingValues(hand2.cards)
   const diffIdx = firstDiffIndex(a, b)
 
-  if (diffIdx === -1) return 'highCardVsCardChop'
-  // if the very top card decided, call it LowerCard; else KickerDecides
-  return diffIdx === 0 ? 'highCardVsLowerCard' : 'highCardVsHighCardKickerDecides'
+  if (diffIdx === -1) return 'highCardVsHighCardChop' // should never happen, but just in case
+  // if the very top card decided, call it LowerHighCard; else KickerDecides
+  return diffIdx === 0 ? 'highCardVsLowerHighCard' : 'highCardVsHighCardKickerDecides'
 }
 
-function refineStraightVsStraight(hand1: any, hand2: any, isTie: boolean): string {
-  if (isTie) return 'straightVsStraightChop'
+function refineStraightVsStraight(hand1: any, hand2: any): string {
   const t1 = straightTopValue(hand1.cards)
   const t2 = straightTopValue(hand2.cards)
   if (t1 !== t2) return 'straightVsLowerStraight'
-  // Equal top card straights in Hold’em should chop; keep a fallback:
-  return 'straightVsStraightChop'
+  return 'straightVsStraightChop'// should never happen, but just in case
 }
 
 // Generic fallback for equal-name categories we haven’t specialized yet.
 // Tries: flush → compare high cards, full house/fourOAK → compare primary ranks,
 // else: compare descending ranks as kickers/primary.
-function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: boolean): string {
-  const name = base // e.g., "flushVsFlush", "fullHouseVsFullHouse"
-  if (isTie) return `${name.replace('Vs', 'Vs')}Chop`
-
+function refineGenericSameCategory(base: string, hand1: any, hand2: any): string {
   const leftName = parseBase(base).left // e.g., "flush"
   switch (leftName) {
     case 'flush': {
       const a = descendingValues(hand1.cards)
       const b = descendingValues(hand2.cards)
       const d = firstDiffIndex(a, b)
-      if (d === -1) return 'flushVsFlushChop'
+      if (d === -1) return 'flushVsFlushChop' // should never happen, but just in case
       return 'flushVsLowerFlush'
     }
     case 'fullHouse': {
@@ -131,7 +130,7 @@ function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: 
       const h1Pair = [...c1.entries()].find(([, cnt]) => cnt === 2)?.[0] ?? 0
       const h2Pair = [...c2.entries()].find(([, cnt]) => cnt === 2)?.[0] ?? 0
       if (h1Pair !== h2Pair) return 'fullHouseVsLowerFullHouse'
-      return 'fullHouseVsFullHouseChop'
+      return 'fullHouseVsFullHouseChop' // should never happen, but just in case
     }
     case 'fourOfAKind': {
       const c1 = countByRank(hand1.cards)
@@ -143,7 +142,7 @@ function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: 
       const a = descendingValues(hand1.cards).filter(v => v !== h1Quad)
       const b = descendingValues(hand2.cards).filter(v => v !== h2Quad)
       const d = firstDiffIndex(a, b)
-      if (d === -1) return 'fourOfAKindVsLowerFourOfAKindChop'
+      if (d === -1) return 'fourOfAKindVsFourOfAKindChop' // should never happen, but just in case
       return 'fourOfAKindVsFourOfAKindKickerDecides'
     }
     case 'threeOfAKind': {
@@ -155,15 +154,21 @@ function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: 
       const a = descendingValues(hand1.cards).filter(v => v !== h1Trips)
       const b = descendingValues(hand2.cards).filter(v => v !== h2Trips)
       const d = firstDiffIndex(a, b)
-      if (d === -1) return 'threeOfAKindVsThreeOfAKindChop'
+      if (d === -1) return 'threeOfAKindVsThreeOfAKindChop' // should never happen, but just in case
       return 'threeOfAKindVsThreeOfAKindKickerDecides'
     }
     case 'twoPair': {
       // gather pair ranks high→low, then kicker
       const pairsAndRest = (h: any) => {
         const cnt = countByRank(h.cards)
-        const pairs = [...cnt.entries()].filter(([, c]) => c === 2).map(([v]) => v).sort((a, b) => b - a)
-        const kicker = [...cnt.entries()].filter(([, c]) => c === 1).map(([v]) => v).sort((a, b) => b - a)
+        const pairs = [...cnt.entries()]
+          .filter(([, c]) => c === 2)
+          .map(([v]) => v)
+          .sort((a, b) => b - a)
+        const kicker = [...cnt.entries()]
+          .filter(([, c]) => c === 1)
+          .map(([v]) => v)
+          .sort((a, b) => b - a)
         return { pairs, kicker }
       }
       const A = pairsAndRest(hand1)
@@ -173,7 +178,7 @@ function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: 
       if (pDiff !== -1) return 'twoPairVsLowerTwoPair'
       // pairs equal → kicker decides
       const kDiff = firstDiffIndex(A.kicker, B.kicker)
-      if (kDiff === -1) return 'twoPairVsTwoPairChop'
+      if (kDiff === -1) return 'twoPairVsTwoPairChop' // should never happen, but just in case
       return 'twoPairVsTwoPairKickerDecides'
     }
     default: {
@@ -181,7 +186,7 @@ function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: 
       const a = descendingValues(hand1.cards)
       const b = descendingValues(hand2.cards)
       const d = firstDiffIndex(a, b)
-      if (d === -1) return `${leftName}Vs${leftName[0].toUpperCase()}${leftName.slice(1)}Chop`
+      if (d === -1) return `${leftName}Vs${leftName[0].toUpperCase()}${leftName.slice(1)}Chop` // should never happen, but just in case
       return `${leftName}Vs${leftName[0].toUpperCase()}${leftName.slice(1)}KickerDecides`
     }
   }
@@ -193,14 +198,21 @@ function refineGenericSameCategory(base: string, hand1: any, hand2: any, isTie: 
  * - "...KickerDecides" | "...LowerX" | "...Chop"
  * Only applies when both sides are the same base name; otherwise returns base key.
  */
-export function refineSameRankCategory(baseKeyWinnerFirst: string, hand1Winner: any, hand2Loser: any, isTie: boolean): string {
+export function refineSameRankCategory(baseKeyWinnerFirst: string, hand1Winner: any, hand2Loser: any, isTie: boolean, board: string[]): string {
   const { left, right } = parseBase(baseKeyWinnerFirst)
   if (left !== right) return baseKeyWinnerFirst
 
+  if (isTie) {
+    if (isBoardHand(hand1Winner, board) && isBoardHand(hand2Loser, board)) {
+      return `onBoard${left[0].toUpperCase()}${left.slice(1)}Chop`
+    }
+    return `${left}Vs${left[0].toUpperCase()}${left.slice(1)}Chop`
+  }
+
   switch (left) {
-    case 'pair':        return refinePairVsPair(hand1Winner, hand2Loser, isTie)
-    case 'highCard':    return refineHighCardVsHighCard(hand1Winner, hand2Loser, isTie)
-    case 'straight':    return refineStraightVsStraight(hand1Winner, hand2Loser, isTie)
-    default:            return refineGenericSameCategory(baseKeyWinnerFirst, hand1Winner, hand2Loser, isTie)
+    case 'pair':        return refinePairVsPair(hand1Winner, hand2Loser)
+    case 'highCard':    return refineHighCardVsHighCard(hand1Winner, hand2Loser)
+    case 'straight':    return refineStraightVsStraight(hand1Winner, hand2Loser)
+    default:            return refineGenericSameCategory(baseKeyWinnerFirst, hand1Winner, hand2Loser)
   }
 }
