@@ -1,0 +1,26 @@
+{
+  "name": "poker-playground",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx index.ts 2000000",
+    "test": "tsx test.ts",
+    "dev": "tsx watch index.ts",
+    "format": "prettier --write .",
+    "clear-output": "tsx clear-output.ts",
+    "format:check": "prettier --check ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "pokersolver": "^2.1.4",
+    "prettier": "^3.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
